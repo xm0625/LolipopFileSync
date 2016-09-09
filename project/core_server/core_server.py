@@ -14,6 +14,7 @@ import json
 
 max_id = 0
 id_path_map = {}
+config = {}
 
 class CommonException(Exception):
     code = "0"
@@ -138,6 +139,10 @@ def app(environ, start_response):
 
 
 def init():
+    global config
+    with open("./config.json") as f:
+        config_content = f.read()
+    config = json.loads(config_content)
     pass
 
 

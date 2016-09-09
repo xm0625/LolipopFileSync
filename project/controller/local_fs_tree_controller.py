@@ -9,6 +9,7 @@ from project.exception.common_exception import CommonException
 from project.service import local_fs_tree_service
 import os
 
+# TODO 加入访问者ip判断 非127.0.0.1的ip需要验证密码
 
 @app.route('/api/local/list_dir', method=['GET', 'POST'])
 @allow_cross_domain
