@@ -18,3 +18,12 @@ def response_json(fn):
             return result_data
 
     return __wrapper
+
+
+def response_normal_json(fn):
+    def __wrapper(*args, **kwargs):
+        response_data = fn(*args, **kwargs)
+        response.content_type = 'application/json; charset=' + response.charset
+        return json.dumps(response_data, encoding=response.charset, ensure_ascii=False)
+
+    return __wrapper

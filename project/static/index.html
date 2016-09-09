@@ -1,57 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset="UTF-8">
-	<title>Fluid Layout - jQuery EasyUI Demo</title>
-	<link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.5/themes/default/easyui.css">
-	<link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.5/themes/IconExtension.css">
-	<script type="text/javascript" src="/static/jquery-easyui-1.5/jquery.min.js"></script>
-	<script type="text/javascript" src="/static/jquery-easyui-1.5/jquery.easyui.min.js"></script>
+    <meta charset="UTF-8">
+    <title>LolipopFileSync</title>
+    <link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.5/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.5/themes/IconExtension.css">
+    <script type="text/javascript" src="/static/jquery-easyui-1.5/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/jquery-easyui-1.5/jquery.easyui.min.js"></script>
 </head>
 <body>
-	<div style="margin:20px 0;"></div>
-	<div class="easyui-layout" style="width:1000px;height:600px;margin-left:auto;margin-right:auto;">
+<div style="margin:20px 0;"></div>
+<div class="easyui-layout" style="width:1000px;height:600px;margin-left:auto;margin-right:auto;">
     <div data-options="region:'north'" style="height:60px;">
-      <div class="easyui-layout" data-options="fit:true">
-				<div data-options="region:'north',border:false" style="height:26px">
-          <div style="width:100px;margin-left:auto;margin-right:auto;margin-top:5px;margin-bottom:5px;font-size:14px;font-weight: bold;">LolipopFileSync</div>
+        <div class="easyui-layout" data-options="fit:true">
+            <div data-options="region:'north',border:false" style="height:26px">
+                <div style="width:100px;margin-left:auto;margin-right:auto;margin-top:5px;margin-bottom:5px;font-size:14px;font-weight: bold;">LolipopFileSync</div>
+            </div>
+            <div data-options="region:'west',border:false" style="width:400px;padding-left:20px;">
+                <a id="reloadLocalButton" class="easyui-linkbutton" data-options="iconCls:'icon-arrow_refresh'" style="width:100px">刷新本地</a>
+            </div>
+            <div data-options="region:'east',border:false" style="width:400px;">
+                <select class="easyui-combobox" name="state" style="width:200px;padding-left:20px;">
+                    <option value="0">选择一个远端服务器</option>
+                </select>
+                <a class="easyui-linkbutton" data-options="iconCls:'icon-connect'" style="width:85px">连接</a>
+                <a class="easyui-linkbutton" data-options="iconCls:'icon-edit'" style="width:85px">编辑</a>
+            </div>
+            <div data-options="region:'center',border:false">
+                <div style="width:100px;margin-left:auto;margin-right:auto;">
+                    <a class="easyui-linkbutton" data-options="iconCls:'icon-arrow_ew'" style="width:85px">同步</a>
+                </div>
+            </div>
         </div>
-				<div data-options="region:'west',border:false" style="width:400px;padding-left:20px;">
-          <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-arrow_refresh'" style="width:100px">刷新本地</a>
-        </div>
-				<div data-options="region:'east',border:false" style="width:400px;">
-          <select class="easyui-combobox" name="state" style="width:200px;padding-left:20px;">
-            <option value="0">选择一个远端服务器</option>
-          </select>
-          <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-connect'" style="width:85px">连接</a>
-          <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" style="width:85px">编辑</a>
-        </div>
-				<div data-options="region:'center',border:false">
-          <div style="width:100px;margin-left:auto;margin-right:auto;">
-            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-arrow_ew'" style="width:85px">同步</a>
-          </div>
-        </div>
-			</div>
     </div>
-		<div id="p" data-options="region:'west',collapsible:false" title="local" style="width:50%">
-        <table title="Products" class="easyui-treegrid" style="width:700px;height:300px"
-              url="treegrid3_getdata.php"
-              rownumbers="true"
-              idField="id" treeField="name">
-          <thead>
-              <tr>
-                  <th field="name" width="250">Name</th>
-                  <th field="quantity" width="100" align="right">Quantity</th>
-                  <th field="price" width="150" align="right">Price</th>
-                  <th field="total" width="150" align="right">Total</th>
-              </tr>
-          </thead>
-      </table>
-		</div>
-		<div data-options="region:'center'" title="remote">
-		</div>
-		<div data-options="region:'south'" title="队列"  style="height:100px;">
-		</div>
-	</div>
+    <div id="p" data-options="region:'west',collapsible:false" title="local" style="width:50%">
+        <table class="easyui-treegrid" id="localFsTable" style="width:100%;height:100%;"
+               url="/api/local/list_dir"
+               rownumbers="false"
+               idField="id" treeField="name">
+            <thead>
+            <tr>
+                <th field="name" width="50%">名称</th>
+                <th field="quantity" width="20%" align="right">大小</th>
+                <th field="price" width="30%" align="right">修改时间</th>
+            </tr>
+            </thead>
+        </table>
+    </div>
+    <div data-options="region:'center'" title="remote">
+    </div>
+    <div data-options="region:'south'" title="队列"  style="height:100px;">
+    </div>
+</div>
 </body>
+
+<script>
+
+    $("#reloadLocalButton").bind("click",function(){
+        if($('#reloadLocalButton').attr("class").indexOf("disabled")>-1){
+            return;
+        }
+        $('#reloadLocalButton').linkbutton('disable');
+        $.when(reloadLocalRequest()).then(function () {
+            $("#localFsTable").treegrid('reload');
+        }).fail(function () {
+            alert("加载失败");
+            $('#reloadLocalButton').linkbutton('enable');
+        })
+    });
+    $("#localFsTable").treegrid({
+        onLoadSuccess:function () {
+            $('#reloadLocalButton').linkbutton('enable');
+        },
+        onLoadError:function () {
+            alert("加载失败");
+            $('#reloadLocalButton').linkbutton('enable');
+        }
+    });
+    function reloadLocalRequest(){
+        var dtd = $.Deferred();
+        $.get("/api/local/reload").then(function (data) {
+            if(typeof(data["code"])== "string" && data["code"] == "1"){
+                dtd.resolve()
+            }else{
+                dtd.reject()
+            }
+        }).fail(function () {
+            dtd.reject()
+        });
+        return dtd;
+    }
+</script>
 </html>

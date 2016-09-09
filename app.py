@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # 解决py2.7中文出现write错误的问题
+import SocketServer
 import sys
 
 reload(sys)
@@ -15,14 +16,13 @@ import threading
 import os
 from project import app
 from project.bottle import debug, run
-from project.sqlite_manager import sqlite_manager_server
+from project.sqlite_manager import sqlite_server
+from project.core_server import core_server
 
 debug(True)
 
-
 # 创建一个服务器，IP地址为空，端口是8000，处理函数是application:
 def start_httpd(host, port):
-    global httpd_server
 
     class ProcessPoolWSGIServer(PooledProcessMixIn, WSGIServer):
         pass
@@ -65,9 +65,11 @@ def start_httpd(host, port):
             )
             handler.request_handler = self  # backpointer for logging
             handler.run(self.server.get_app())
-
-    httpd_server = make_server(host, port, app, server_class=ProcessPoolWSGIServer,
-                               handler_class=FixedWSGIRequestHandler)
+    if sys.platform == "win32":
+        run(app, reloader=True, interval=1, host=host, port=port)
+    else:
+        httpd_server = make_server(host, port, app, server_class=ProcessPoolWSGIServer,
+                                   handler_class=FixedWSGIRequestHandler)
     print('Started httpd %s' % port)
     httpd_server.serve_forever()
 
@@ -79,7 +81,12 @@ if __name__ == '__main__':
     httpd_thread.start()
     print("httpd_thread started.")
 
-    sqlite_manager_thread = threading.Thread(target=sqlite_manager_server.run, args=("127.0.0.1", 50001, "123456",))
+    core_server_thread = threading.Thread(target=core_server.run)
+    core_server_thread.setDaemon(True)
+    core_server_thread.start()
+    print("core_server_thread started.")
+
+    sqlite_manager_thread = threading.Thread(target=sqlite_server.run)
     sqlite_manager_thread.setDaemon(True)
     sqlite_manager_thread.start()
     print("sqlite_manager_thread started.")
