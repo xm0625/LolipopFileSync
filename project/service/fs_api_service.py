@@ -12,6 +12,7 @@ from project.util import fs
 from project.core_server import core_server_helper as core_server_helper
 import socket
 
+
 def list_dir(dir_id):
     fs_item_list = []
     if dir_id is None:

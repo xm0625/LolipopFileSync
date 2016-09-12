@@ -67,6 +67,24 @@ def execute(request):
         id_path_map = {}
         max_id = 0
         return "ok"
+    if method == "getConfig":
+        key = param["key"]
+        default_value = None
+        if "default" in param:
+            default_value = param["default"]
+        if key not in config:
+            return default_value
+        return config[key]
+    if method == "updateConfig":
+        key = param["key"]
+        value = param["value"]
+        config[key] = value
+        return "ok"
+    if method == "saveConfig":
+        with open("./config.json", 'w+') as f:
+            config_content = json.dumps(config, ensure_ascii=False, indent=True)
+            f.write(config_content)
+        return "ok"
 
 
 def app(environ, start_response):
@@ -135,7 +153,7 @@ def app(environ, start_response):
                            ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'), ('Access-Control-Allow-Headers',
                                                                                     'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type')]
     start_response(response_code, response_header)
-    return [response_string]
+    return [byteify(response_string)]
 
 
 def init():

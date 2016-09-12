@@ -20,9 +20,12 @@
                 <a id="reloadLocalButton" class="easyui-linkbutton" data-options="iconCls:'icon-arrow_refresh'" style="width:100px">刷新本地</a>
             </div>
             <div data-options="region:'east',border:false" style="width:400px;">
-                <select class="easyui-combobox" name="state" style="width:200px;padding-left:20px;">
-                    <option value="0">选择一个远端服务器</option>
-                </select>
+                <!--<input id="language" class="easyui-combobox" name="language" style="width:100%;"-->
+                <!--&gt;-->
+                <input class="easyui-combobox" name="state" style="width:200px;padding-left:20px;" id="remoteSelect" data-options="
+                    valueField: 'id',
+                    textField: 'text',
+                    labelPosition: 'top'"/>
                 <a class="easyui-linkbutton" data-options="iconCls:'icon-connect'" style="width:85px">连接</a>
                 <a class="easyui-linkbutton" data-options="iconCls:'icon-edit'" style="width:85px">编辑</a>
             </div>
@@ -35,7 +38,7 @@
     </div>
     <div id="p" data-options="region:'west',collapsible:false" title="local" style="width:50%">
         <table class="easyui-treegrid" id="localFsTable" style="width:100%;height:100%;"
-               url="/api/local/list_dir"
+               url="/api/fs/list_dir"
                rownumbers="false"
                idField="id" treeField="name">
             <thead>
@@ -79,7 +82,7 @@
     });
     function reloadLocalRequest(){
         var dtd = $.Deferred();
-        $.get("/api/local/reload").then(function (data) {
+        $.get("/api/fs/reload").then(function (data) {
             if(typeof(data["code"])== "string" && data["code"] == "1"){
                 dtd.resolve()
             }else{
@@ -89,6 +92,50 @@
             dtd.reject()
         });
         return dtd;
+    }
+    $(document).ready(function () {
+        $.when(loadRemoteList()).then(function (remoteList) {
+            fillRemoteSelect(remoteList);
+        })
+
+        $("#remoteSelect").combobox({
+            onSelect:function (record) {
+                if(record.id == "addNew"){
+                    setTimeout(function () {
+                        $("#remoteSelect").combobox("select","-1");
+                    },200);
+                    console.log(record);
+                }
+            }
+        });
+    });
+
+    function loadRemoteList(){
+        var dtd = $.Deferred();
+        $.get("/api/config/detail/remoteList").then(function (data) {
+            if(typeof(data["code"])== "string" && data["code"] == "1"){
+                dtd.resolve(data["data"])
+            }else{
+                dtd.reject()
+            }
+        }).fail(function () {
+            dtd.reject()
+        });
+        return dtd;
+    }
+
+    function fillRemoteSelect(remoteList){
+        //TODO 生成一个id-remote对应表
+        var firstItem = {"id": "-1","text": "选择一个远端服务器", "selected":true};
+        var lastItem = {"id": "addNew","text": "新增一个远端服务器"};
+        var remoteSelectList = [];
+        remoteSelectList[remoteSelectList.length] = firstItem;
+        for(var i=0;i<remoteList.length;i++){
+            var remoteItem = remoteList[i];
+            remoteSelectList[remoteSelectList.length] = {"id": remoteItem["id"],"text": remoteItem["name"]};
+        }
+        remoteSelectList[remoteSelectList.length] = lastItem;
+        $("#remoteSelect").combobox("loadData", remoteSelectList);
     }
 </script>
 </html>

@@ -3,6 +3,7 @@
 from project.exception.common_exception import CommonException
 import traceback
 
+
 def global_exception_handler(fn):
     def __wrapper(*args, **kwargs):
         try:

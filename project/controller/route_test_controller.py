@@ -3,7 +3,7 @@ from project import app, app_root_path
 from project.bottle import template, request
 from project.decorator.cors import allow_cross_domain
 from project.decorator.global_exception_handler import global_exception_handler
-from project.decorator.response_format import response_json
+from project.decorator.response_format import response_wrapped_json
 from project.exception.common_exception import CommonException
 from project.service import route_test_service
 import os
@@ -11,21 +11,21 @@ import uuid
 
 
 @app.route('/api/hello', method='GET')
-@response_json
+@response_wrapped_json
 def hello():
     return {"hello": "world"}
 
 
 @app.route('/api/corTest', method=['GET', 'POST'])
 @allow_cross_domain
-@response_json
+@response_wrapped_json
 def cor_test():
     return {"hello": "world"}
 
 
 @app.route('/api/exceptionTest', method=['GET', 'POST'])
 @allow_cross_domain
-@response_json
+@response_wrapped_json
 @global_exception_handler
 def exception_test():
     raise CommonException()
@@ -33,14 +33,14 @@ def exception_test():
 
 
 @app.route('/uploadTest', method='GET')
-@response_json
+@response_wrapped_json
 def do_upload():
     return template('upload/form', message='')
 
 
 @app.route('/upload', method='POST')
 @allow_cross_domain
-@response_json
+@response_wrapped_json
 @global_exception_handler
 def do_upload():
     category = request.params.get('category')
@@ -57,7 +57,7 @@ def do_upload():
 
 @app.route('/api/helloTo', method=['GET', 'POST'])
 @allow_cross_domain
-@response_json
+@response_wrapped_json
 @global_exception_handler
 def hello_to_somebody():
     username = request.params.get('username')
@@ -67,14 +67,14 @@ def hello_to_somebody():
 @app.route('/api/books', method=['GET', 'POST'])
 @global_exception_handler
 @allow_cross_domain
-@response_json
+@response_wrapped_json
 def get_all_books():
     return {"books": route_test_service.get_all_books()}
 
 
 @app.route('/api/addBook', method=['GET', 'POST'])
 @allow_cross_domain
-@response_json
+@response_wrapped_json
 @global_exception_handler
 def add_books():
     title = request.params.get('book.title')

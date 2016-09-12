@@ -1,29 +1,32 @@
 # -*- coding: utf-8 -*-
 from project import app
 from project.decorator.cors import allow_cross_domain
+from project.decorator.response_format import response_wrapped_json
 from project.decorator.response_format import response_json
-from project.decorator.response_format import response_normal_json
 from project.decorator.global_exception_handler import global_exception_handler
+from project.decorator.local_ip_check import local_ip_check
 from project.bottle import request
 from project.exception.common_exception import CommonException
-from project.service import local_fs_tree_service
+from project.service import fs_api_service
 import os
 
-# TODO 加入访问者ip判断 非127.0.0.1的ip需要验证密码
 
-@app.route('/api/local/list_dir', method=['GET', 'POST'])
-@allow_cross_domain
-@response_normal_json
-@global_exception_handler
-def list_dir():
-    dir_id = request.params.get('id')
-    return local_fs_tree_service.list_dir(dir_id)
-
-
-@app.route('/api/local/reload', method=['GET', 'POST'])
+@app.route('/api/fs/list_dir', method=['GET', 'POST'])
 @allow_cross_domain
 @response_json
 @global_exception_handler
+@local_ip_check
+def list_dir():
+    dir_id = request.params.get('id')
+    return fs_api_service.list_dir(dir_id)
+
+
+@app.route('/api/fs/reload', method=['GET', 'POST'])
+@allow_cross_domain
+@response_wrapped_json
+@global_exception_handler
+@local_ip_check
 def reload_dir():
-    local_fs_tree_service.reload_dir()
+    fs_api_service.reload_dir()
     return "ok"
+

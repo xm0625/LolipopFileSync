@@ -1,3 +1,19 @@
 {
-  "password":"123456"
+ "remoteList": [
+  {
+   "id": "1264987", 
+   "host": "192.168.0.39", 
+   "name": "office-bx-test", 
+   "auth_key": "123456", 
+   "port": 8000
+  }, 
+  {
+   "id": "1264906", 
+   "host": "192.168.0.39", 
+   "name": "office-bx-test1", 
+   "auth_key": "123456", 
+   "port": 8000
+  }
+ ], 
+ "auth_key": "654321"
 }
