@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
+
 from project import app
 from project.bottle import request
 from project.decorator.cors import allow_cross_domain
@@ -16,7 +18,8 @@ from project.service import config_api_service
 def update_config():
     key = request.params.get('key')
     value = request.params.get('value')
-    config_api_service.update_config(key, value)
+    is_json = request.params.get('isJson')
+    config_api_service.update_config(key, json.loads(value) if is_json == "1" else value)
     return "ok"
 
 

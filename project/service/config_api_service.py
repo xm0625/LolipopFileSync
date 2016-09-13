@@ -17,6 +17,7 @@ def get_config(config_key):
 
 def update_config(key, value):
     core_server_helper.execute("updateConfig", {"key": key, "value": value})
+    core_server_helper.execute("saveConfig", {})
 
 
 def save_config():
