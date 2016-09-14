@@ -23,12 +23,20 @@
             <div data-options="region:'east',border:false" style="width:400px;">
                 <!--<input id="language" class="easyui-combobox" name="language" style="width:100%;"-->
                 <!--&gt;-->
-                <input class="easyui-combobox" name="state" style="width:200px;padding-left:20px;" id="remoteSelect" data-options="
+                <div style="position: relative;width: 202px;float: left;">
+                    <input class="easyui-combobox" name="state" style="width:200px;padding-left:20px;" id="remoteSelect" data-options="
                     valueField: 'id',
                     textField: 'text',
                     labelPosition: 'top'"/>
-                <a class="easyui-linkbutton" id="connectRemoteButton" data-options="iconCls:'icon-connect'" style="width:85px">连接</a>
-                <a class="easyui-linkbutton" id="editRemoteButton" data-options="iconCls:'icon-edit'" style="width:85px">编辑</a>
+                </div>
+                <div style="position: relative;width:87px;float: left;">
+                    <a class="easyui-linkbutton" id="connectRemoteButton" data-options="iconCls:'icon-connect'" style="width:85px">连接</a>
+                    <a class="easyui-linkbutton" id="disconnectRemoteButton" data-options="iconCls:'icon-disconnect'" style="width:85px;display: none;">断开</a>
+                </div>
+                <div style="position: relative;width:87px;float: left;">
+                    <a class="easyui-linkbutton" id="editRemoteButton" data-options="iconCls:'icon-edit'" style="width:85px">编辑</a>
+                </div>
+                <div style="clear: both;"></div>
             </div>
             <div data-options="region:'center',border:false">
                 <div style="width:100px;margin-left:auto;margin-right:auto;">
@@ -85,6 +93,7 @@
         <div class="easyui-layout" data-options="fit:true">
             <div data-options="region:'center',border:false" style="padding:10px;">
                 <form id="editExistRemoteForm" class="easyui-form" method="post" data-options="novalidate:true">
+                    <input id="editExistRemoteId" type="hidden">
                     <div style="margin-bottom:20px">
                         <input class="easyui-textbox" name="name" id="editExistRemoteName" style="width:100%" data-options="label:'显示名称:'">
                     </div>
@@ -217,6 +226,16 @@
         $('#addNewRemoteAuthKey').textbox('setValue', "");
     }
 
+    //初始化编辑远端服务器window
+    function initEditExistRemoteWindow(id) {
+        $('#editExistRemoteId').val(id);
+        $('#editExistRemoteName').textbox('setValue', idRemoteMap[id]["name"]);
+        $('#editExistRemoteHost').textbox('setValue', idRemoteMap[id]["host"]);
+        $('#editExistRemotePort').numberbox('setValue', idRemoteMap[id]["port"]);
+        $('#editExistRemoteAuthKey').textbox('setValue', idRemoteMap[id]["auth_key"]);
+    }
+
+
     //初始绑定
     function initBind() {
         //设定所有easyui-window的右上角按钮
@@ -317,13 +336,83 @@
 
         //"编辑"按钮点击事件
         $("#editRemoteButton")[0].onclick = function(){
-            if($("#remoteSelect").combobox("getValue") == "-1"){
+            var selectedId = $("#remoteSelect").combobox("getValue");
+            if(selectedId == "-1"){
                 alert("请先选择一个远端服务器");
                 return;
             }
-            //TODO 将id传入 编辑window初始化函数 填充编辑window中的数据
+            initEditExistRemoteWindow(selectedId);
+            $('#editExistRemote').window('open');
+        };
 
-        }
+
+        //编辑远端服务器window中取消按钮的事件绑定
+        $("#editExistRemoteCancelButton")[0].onclick = function(){
+            $('#editExistRemote').window('close');
+        };
+
+        //新增远端服务器window中确定按钮的事件绑定
+        $("#editExistRemoteConfirmButton")[0].onclick = function(){
+            var name = $('#editExistRemoteName').textbox('getValue');
+            var host = $('#editExistRemoteHost').textbox('getValue');
+            var port = $('#editExistRemotePort').numberbox('getValue');
+            var authKey = $('#editExistRemoteAuthKey').textbox('getValue');
+            if(name == "" || host == "" || port == "" || authKey == ""){
+                alert("信息填写不完整");
+                return;
+            }
+            $('#editExistRemoteConfirmButton').linkbutton('disable');
+            var id = $('#editExistRemoteId').val();
+            idRemoteMap[id] = {
+                id: id,
+                name: name,
+                host: host,
+                port: port,
+                auth_key: authKey
+            };
+            $.when(updateRemoteListConfig()).then(function () {
+                alert("更新成功");
+                reloadRemoteSelect();
+                $('#editExistRemote').window('close');
+            }).always(function () {
+                $('#editExistRemoteConfirmButton').linkbutton('enable');
+            });
+        };
+
+
+        //编辑远端服务器window中测试按钮的事件绑定
+        $("#editExistRemoteTestConnectButton")[0].onclick = function(){
+            var host = $('#editExistRemoteHost').textbox('getValue');
+            var port = $('#editExistRemotePort').numberbox('getValue');
+            var authKey = $('#editExistRemoteAuthKey').textbox('getValue');
+            if(host == "" || port == "" || authKey == ""){
+                alert("信息填写不完整");
+                return;
+            }
+            $('#editExistRemoteTestConnectButton').linkbutton('disable');
+            $.when(testConnection(host,port,authKey)).then(function () {
+                alert("连接成功");
+            }).fail(function () {
+                alert("连接失败");
+            }).always(function () {
+                $('#editExistRemoteTestConnectButton').linkbutton('enable');
+            })
+        };
+
+
+        //编辑远端服务器window中删除按钮的事件绑定
+        $("#editExistRemoteDeleteButton")[0].onclick = function(){
+            $('#editExistRemoteDeleteButton').linkbutton('disable');
+            var id = $('#editExistRemoteId').val();
+            delete idRemoteMap[id];
+            $.when(updateRemoteListConfig()).then(function () {
+                alert("删除成功");
+                reloadRemoteSelect();
+                $('#editExistRemote').window('close');
+            }).always(function () {
+                $('#editExistRemoteDeleteButton').linkbutton('enable');
+            });
+        };
 
         //"连接"按钮点击事件
         $("#connectRemoteButton")[0].onclick = function(){
@@ -332,6 +421,7 @@
                 return;
             }
             //TODO 将按钮切换成断开按钮 刷新远端fs列表
+            $("#connectRemoteButton").hide();$("#disconnectRemoteButton").show();
 
         }
 
