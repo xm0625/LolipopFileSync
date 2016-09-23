@@ -3,6 +3,8 @@
 # 解决py2.7中文出现write错误的问题
 import sys
 
+from project.util.byteify import byteify
+
 reload(sys)
 sys.setdefaultencoding('utf-8')
 # 解决py2.7中文出现write错误的问题 #
@@ -27,17 +29,6 @@ class CommonException(Exception):
             self.code = code
         if message:
             self.message = message
-
-
-def byteify(input):
-    if isinstance(input, dict):
-        return {byteify(key): byteify(value) for key, value in input.iteritems()}
-    elif isinstance(input, list):
-        return [byteify(element) for element in input]
-    elif isinstance(input, unicode):
-        return input.encode('utf-8')
-    else:
-        return input
 
 
 def execute(request):

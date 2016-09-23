@@ -30,3 +30,26 @@ def reload_dir():
     fs_api_service.reload_dir()
     return "ok"
 
+
+@app.route('/api/fs/walkPath', method=['GET', 'POST'])
+@allow_cross_domain
+@response_wrapped_json
+@global_exception_handler
+@local_ip_check
+def walk_path():
+    path_to_walk = request.params.get('path')
+    return fs_api_service.walk_and_gen_path_info(path_to_walk)
+
+
+@app.route('/api/fs/diffPathInfo', method=['GET', 'POST'])
+@allow_cross_domain
+@response_wrapped_json
+@global_exception_handler
+@local_ip_check
+def walk_path():
+    local_path_info = request.params.get('localPathInfo')
+    remote_path_info = request.params.get('remotePathInfo')
+    return fs_api_service.diff_path_info(local_path_info, remote_path_info)
+
+
+

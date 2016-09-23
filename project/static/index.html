@@ -40,26 +40,15 @@
             </div>
             <div data-options="region:'center',border:false">
                 <div style="width:100px;margin-left:auto;margin-right:auto;">
-                    <a class="easyui-linkbutton" data-options="iconCls:'icon-arrow_ew'" style="width:85px">同步</a>
+                    <a class="easyui-linkbutton" data-options="iconCls:'icon-arrow_ew'" style="width:85px" id="compareButton">同步</a>
                 </div>
             </div>
         </div>
     </div>
     <div id="p" data-options="region:'west',collapsible:false" title="local" style="width:50%">
-        <table class="easyui-treegrid" id="localFsTable" style="width:100%;height:100%;"
-               url="/api/fs/list_dir"
-               rownumbers="false"
-               idField="id" treeField="name">
-            <thead>
-            <tr>
-                <th field="name" width="50%">名称</th>
-                <th field="quantity" width="20%" align="right">大小</th>
-                <th field="price" width="30%" align="right">修改时间</th>
-            </tr>
-            </thead>
-        </table>
+        <table id="localFsTable" style="width:100%;height:100%;"></table>
     </div>
-    <div data-options="region:'center'" title="remote">
+    <div data-options="region:'center'" title="remote" id="remoteFsRegion">
     </div>
     <div data-options="region:'south'" title="队列"  style="height:100px;">
     </div>
@@ -125,11 +114,17 @@
     var idRemoteMap = {};
 
     //测试远端服务器,比对本地与远端的版本号
-    function testConnection(host, port, authKey) {
+    function testConnection(connectionInfo) {
         var dtd =$.Deferred();
-        var url = host.startsWith("http")?host:"http://"+host;
-        url = url+":"+port;
-        url += "/api/version?auth_key="+authKey;
+        var baseUrl = "/api/version";
+        var url;
+        if(connectionInfo){
+            url = connectionInfo["host"].startsWith("http")?connectionInfo["host"]:"http://"+connectionInfo["host"];
+            url = url+":"+connectionInfo["port"];
+            url = url + baseUrl+"?auth_key="+connectionInfo["auth_key"];
+        }else{
+            url = baseUrl;
+        }
         $.get(url).then(function (data) {
             try{
                 if(typeof(data) == "string"){
@@ -218,6 +213,38 @@
         return dtd;
     }
 
+    //更新远端文件列表显示数据源
+    function loadRemoteFsTable(connectionInfo){
+        var baseUrl = "/api/fs/list_dir";
+        var url;
+        if(connectionInfo){
+            url = connectionInfo["host"].startsWith("http")?connectionInfo["host"]:"http://"+connectionInfo["host"];
+            url = url+":"+connectionInfo["port"];
+            url = url + baseUrl+"?auth_key="+connectionInfo["auth_key"];
+        }else{
+            url = baseUrl;
+        }
+
+        $("#remoteFsRegion").empty();
+        $("#remoteFsRegion").html('<table id="remoteFsTable" style="width:100%;height:100%;"></table>');
+        $("#remoteFsTable").treegrid({
+            url: url,
+            method: 'POST',
+            idField:'id',
+            treeField:'name',
+            columns:[[
+                {title:'名称',field:'name',width:239},
+                {title:'大小',field:'size',width:95},
+                {title:'修改时间',field:'mTime',width:142}
+            ]]
+        });
+    }
+
+    //断开连接时清空远端文件列表
+    function clearRemoteFsRegion() {
+        $("#remoteFsRegion").empty();
+    }
+
     //初始化新增远端服务器window
     function initAddNewRemoteWindow() {
         $('#addNewRemoteName').textbox('setValue', "");
@@ -235,6 +262,69 @@
         $('#editExistRemoteAuthKey').textbox('setValue', idRemoteMap[id]["auth_key"]);
     }
 
+    function getLocalFsSelectedPath(){
+        var dtd = $.Deferred();
+        var selectItemDict;
+        if($("#localFsTable").length>0){
+            selectItemDict = $("#localFsTable").treegrid("getSelected");
+        }
+        if(selectItemDict && typeof(selectItemDict["kind"]) == "string"){
+            dtd.resolve(selectItemDict["fullPath"]);
+        }else{
+            dtd.reject("localUnselected");
+        }
+        return dtd;
+    }
+
+    function getRemoteFsSelectedPath(){
+        var dtd = $.Deferred();
+        var selectItemDict;
+        if($("#remoteFsTable").length>0){
+            selectItemDict = $("#remoteFsTable").treegrid("getSelected");
+        }
+        if(selectItemDict && typeof(selectItemDict["kind"]) == "string"){
+            dtd.resolve(selectItemDict["fullPath"]);
+        }else{
+            dtd.reject("remoteUnselected");
+        }
+        return dtd;
+    }
+
+    //获取指定路径下的快照信息
+    function getTargetPathInfo(path, connectionInfo){
+        var dtd =$.Deferred();
+        var baseUrl = "/api/fs/walkPath";
+        var url;
+        if(connectionInfo){
+            url = connectionInfo["host"].startsWith("http")?connectionInfo["host"]:"http://"+connectionInfo["host"];
+            url = url+":"+connectionInfo["port"];
+            url = url + baseUrl+"?auth_key="+connectionInfo["auth_key"];
+        }else{
+            url = baseUrl;
+        }
+        var postData = {
+            "path": path
+        };
+        $.post(url, postData).then(function (data) {
+            try{
+                if(typeof(data) == "string"){
+                    data = $.parseJSON(data);
+                }
+                if(data["code"] == "1"){
+                    var pathInfo = data["data"];
+                    dtd.resolve(pathInfo);
+                }else{
+                    dtd.reject("codeError");
+                }
+            }catch(e){
+                console.log(e);
+                dtd.reject("unknownException");
+            }
+        }).fail(function () {
+            dtd.reject("networkError");
+        });
+        return dtd;
+    }
 
     //初始绑定
     function initBind() {
@@ -244,6 +334,19 @@
             minimizable: false,
             maximizable: false,
             closable: true
+        });
+
+        //初始化本地文件列表
+        $("#localFsTable").treegrid({
+            url: '/api/fs/list_dir',
+            method: 'POST',
+            idField:'id',
+            treeField:'name',
+            columns:[[
+                {title:'名称',field:'name',width:239},
+                {title:'大小',field:'size',width:95},
+                {title:'修改时间',field:'mTime',width:142}
+            ]]
         });
 
         //"刷新本地"按钮事件绑定
@@ -325,7 +428,12 @@
                 return;
             }
             $('#addNewRemoteTestConnectButton').linkbutton('disable');
-            $.when(testConnection(host,port,authKey)).then(function () {
+            var connectionInfo = {
+                host: host,
+                port: port,
+                auth_key: authKey
+            };
+            $.when(testConnection(connectionInfo)).then(function () {
                 alert("连接成功");
             }).fail(function () {
                 alert("连接失败");
@@ -390,7 +498,12 @@
                 return;
             }
             $('#editExistRemoteTestConnectButton').linkbutton('disable');
-            $.when(testConnection(host,port,authKey)).then(function () {
+            var connectionInfo = {
+                host: host,
+                port: port,
+                auth_key: authKey
+            };
+            $.when(testConnection(connectionInfo)).then(function () {
                 alert("连接成功");
             }).fail(function () {
                 alert("连接失败");
@@ -416,13 +529,58 @@
 
         //"连接"按钮点击事件
         $("#connectRemoteButton")[0].onclick = function(){
-            if($("#remoteSelect").combobox("getValue") == "-1"){
+            var selectedRemoteId = $("#remoteSelect").combobox("getValue");
+            if(selectedRemoteId == "-1"){
                 alert("请先选择一个远端服务器");
                 return;
             }
-            //TODO 将按钮切换成断开按钮 刷新远端fs列表
-            $("#connectRemoteButton").hide();$("#disconnectRemoteButton").show();
+            $("#connectRemoteButton").linkbutton("disable");
+            $("#editRemoteButton").linkbutton("disable");
+            var connectionInfo = idRemoteMap[selectedRemoteId];
+            $.when(testConnection(connectionInfo)).then(function () {
+                loadRemoteFsTable(connectionInfo);
+                $("#connectRemoteButton").hide();
+                $("#disconnectRemoteButton").show();
+                $("#remoteSelect").combobox("disable");
+            }).fail(function () {
+                $("#editRemoteButton").linkbutton("enable");
+            }).always(function () {
+                $("#connectRemoteButton").linkbutton("enable");
+            });
+        };
 
+        $("#disconnectRemoteButton")[0].onclick = function(){
+            $("#disconnectRemoteButton").linkbutton("disable");
+            clearRemoteFsRegion();
+            $("#disconnectRemoteButton").hide();
+            $("#connectRemoteButton").show();
+            $("#remoteSelect").combobox("enable");
+            $("#editRemoteButton").linkbutton("enable");
+            $("#disconnectRemoteButton").linkbutton("enable");
+        };
+
+        $("#compareButton")[0].onclick = function(){
+            $("#compareButton").linkbutton("disable");
+            //获得本地目录选中文件夹
+            //TODO 完成获得两边的目录 并进行比较
+            $.when(getLocalFsSelectedPath(),getRemoteFsSelectedPath()).then(function (data1, data2) {
+                console.log("data1="+data1+", data2="+data2)
+                var selectedRemoteId = $("#remoteSelect").combobox("getValue");
+                var connectionInfo = idRemoteMap[selectedRemoteId];
+                $.when(getTargetPathInfo(data1),getTargetPathInfo(data2, connectionInfo)).then(function (result1, result2) {
+                    console.log(result1);
+                    console.log(result2);
+                })
+            }).fail(function (error) {
+                if(error == "localUnselected"){
+                    alert("请先选中一个本地的目录再进行同步");
+                }
+                if(error == "remoteUnselected"){
+                    alert("请先选中一个远端的目录再进行同步");
+                }
+            }).always(function () {
+                $("#compareButton").linkbutton("enable");
+            });
         }
 
     }
